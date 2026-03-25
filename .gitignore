@@ -1,0 +1,43 @@
+# claude
+.mcp.json
+.claude/
+shrimp_data/
+ai-context/
+docs/
+CLAUDE.md
+
+# Build
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Gradle
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+bin/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# Logs
+*.log
+
+# Environment
+.env
