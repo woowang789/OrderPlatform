@@ -14,3 +14,7 @@ spring:
         format_sql: true
         default_schema: public
     open-in-view: false
+
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGtleSBmb3Igb3JkZXIgcGxhdGZvcm0gand0IHNpZ25pbmc=
+  expiration: 3600000
