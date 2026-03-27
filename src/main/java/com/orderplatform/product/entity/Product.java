@@ -44,4 +44,14 @@ public class Product extends BaseEntity {
         }
         this.stock -= quantity;
     }
+
+    /**
+     * 주문 취소 시 재고 복원
+     */
+    public void restoreStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("복원 수량은 양수여야 합니다. 요청 수량: " + quantity);
+        }
+        this.stock += quantity;
+    }
 }
