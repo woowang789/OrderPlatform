@@ -5,7 +5,7 @@ import com.orderplatform.order.entity.OrderLine;
 public record OrderLineResponse(
         Long productId,
         String productName,
-        int price,
+        long price,
         int quantity
 ) {
     public static OrderLineResponse from(OrderLine orderLine) {

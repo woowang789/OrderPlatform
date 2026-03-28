@@ -20,14 +20,14 @@ public class Product extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
-    private int price;
+    private long price;
 
     @Column(nullable = false)
     private int stock;
 
     private String category;
 
-    public Product(String name, int price, int stock, String category) {
+    public Product(String name, long price, int stock, String category) {
         this.name = name;
         this.price = price;
         this.stock = stock;

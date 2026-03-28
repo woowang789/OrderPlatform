@@ -29,12 +29,12 @@ public class OrderLine {
     private String productName;
 
     @Column(nullable = false)
-    private int price;
+    private long price;
 
     @Column(nullable = false)
     private int quantity;
 
-    public OrderLine(Long productId, String productName, int price, int quantity) {
+    public OrderLine(Long productId, String productName, long price, int quantity) {
         this.productId = productId;
         this.productName = productName;
         this.price = price;

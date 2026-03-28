@@ -9,7 +9,7 @@ public record CreateProductRequest(
         String name,
 
         @Positive(message = "가격은 양수여야 합니다.")
-        int price,
+        long price,
 
         @PositiveOrZero(message = "재고는 0 이상이어야 합니다.")
         int stock,

@@ -48,7 +48,7 @@ public class OrderService {
                     item.quantity()
             );
             orderLines.add(orderLine);
-            totalAmount += (long) product.getPrice() * item.quantity();
+            totalAmount += product.getPrice() * item.quantity();
         }
 
         Order order = Order.create(memberId, orderLines, totalAmount);
