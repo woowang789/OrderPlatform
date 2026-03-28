@@ -16,12 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -36,9 +36,8 @@ public class OrderService {
         long totalAmount = 0;
 
         for (OrderItemRequest item : request.items()) {
-            Long productId = Objects.requireNonNull(item.productId());
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ProductNotFoundException(productId));
+            Product product = productRepository.findById(item.productId())
+                    .orElseThrow(() -> new ProductNotFoundException(item.productId()));
 
             product.decreaseStock(item.quantity());
 
@@ -84,9 +83,8 @@ public class OrderService {
         order.cancel();
 
         for (OrderLine line : order.getOrderLines()) {
-            Long productId = Objects.requireNonNull(line.getProductId());
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ProductNotFoundException(productId));
+            Product product = productRepository.findById(line.getProductId())
+                    .orElseThrow(() -> new ProductNotFoundException(line.getProductId()));
             product.restoreStock(line.getQuantity());
         }
 
