@@ -45,6 +45,18 @@ public class ProductService {
 
     @Transactional
     public void decreaseStock(@NonNull Long productId, int quantity) {
+        Product product = productRepository.findByIdForUpdate(productId)
+                .orElseThrow(() -> new ProductNotFoundException(productId));
+        product.decreaseStock(quantity);
+    }
+
+    /**
+     * 낙관적 락 기반 재고 차감 (비관적 락과 성능 비교용)
+     * - findById()로 조회 (비관적 락 없음)
+     * - @Version에 의해 커밋 시 버전 충돌 감지
+     */
+    @Transactional
+    public void decreaseStockWithOptimisticLock(@NonNull Long productId, int quantity) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
         product.decreaseStock(quantity);

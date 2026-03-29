@@ -27,6 +27,9 @@ public class Product extends BaseEntity {
 
     private String category;
 
+    @Version
+    private Long version;
+
     public Product(String name, long price, int stock, String category) {
         this.name = name;
         this.price = price;

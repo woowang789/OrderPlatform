@@ -36,7 +36,7 @@ public class OrderService {
         long totalAmount = 0;
 
         for (OrderItemRequest item : request.items()) {
-            Product product = productRepository.findById(item.productId())
+            Product product = productRepository.findByIdForUpdate(item.productId())
                     .orElseThrow(() -> new ProductNotFoundException(item.productId()));
 
             product.decreaseStock(item.quantity());
@@ -83,7 +83,7 @@ public class OrderService {
         order.cancel();
 
         for (OrderLine line : order.getOrderLines()) {
-            Product product = productRepository.findById(line.getProductId())
+            Product product = productRepository.findByIdForUpdate(line.getProductId())
                     .orElseThrow(() -> new ProductNotFoundException(line.getProductId()));
             product.restoreStock(line.getQuantity());
         }
