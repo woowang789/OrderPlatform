@@ -28,7 +28,7 @@ class HexagonalArchitectureTest {
     static final ArchRule 인바운드포트는_도메인에만_의존한다 =
             classes().that().resideInAPackage("..application.port.in..")
                     .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("..domain..", "java..", "jakarta..")
+                    .resideInAnyPackage("..domain..", "..application.port.in..", "java..", "jakarta..")
                     .allowEmptyShould(true);
 
     @ArchTest

@@ -2,9 +2,9 @@ package com.orderplatform.member;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderplatform.common.AbstractIntegrationTest;
-import com.orderplatform.member.dto.LoginRequest;
-import com.orderplatform.member.dto.SignupRequest;
-import com.orderplatform.member.repository.MemberRepository;
+import com.orderplatform.member.adapter.in.web.dto.LoginRequest;
+import com.orderplatform.member.adapter.in.web.dto.SignupRequest;
+import com.orderplatform.member.adapter.out.persistence.MemberJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,11 +27,11 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private MemberRepository memberRepository;
+    private MemberJpaRepository memberJpaRepository;
 
     @BeforeEach
     void setUp() {
-        memberRepository.deleteAll();
+        memberJpaRepository.deleteAll();
     }
 
     @Test

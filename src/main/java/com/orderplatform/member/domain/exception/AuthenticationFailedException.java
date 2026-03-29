@@ -1,5 +1,6 @@
-package com.orderplatform.common.exception;
+package com.orderplatform.member.domain.exception;
 
+import com.orderplatform.common.exception.BusinessException;
 import org.springframework.http.HttpStatus;
 
 public class AuthenticationFailedException extends BusinessException {
