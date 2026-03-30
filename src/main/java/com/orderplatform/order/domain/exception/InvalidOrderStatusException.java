@@ -1,6 +1,7 @@
-package com.orderplatform.common.exception;
+package com.orderplatform.order.domain.exception;
 
-import com.orderplatform.order.entity.OrderStatus;
+import com.orderplatform.common.exception.BusinessException;
+import com.orderplatform.order.domain.model.OrderStatus;
 import org.springframework.http.HttpStatus;
 
 public class InvalidOrderStatusException extends BusinessException {

@@ -1,9 +1,10 @@
 package com.orderplatform.order;
 
 import com.orderplatform.common.AbstractIntegrationTest;
-import com.orderplatform.order.entity.Order;
-import com.orderplatform.order.entity.OrderLine;
-import com.orderplatform.order.repository.OrderRepository;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaEntity;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaRepository;
+import com.orderplatform.order.adapter.out.persistence.OrderLineJpaEntity;
+import com.orderplatform.order.domain.model.OrderStatus;
 import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
 import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
 import jakarta.persistence.EntityManager;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OrderConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderJpaRepository orderJpaRepository;
 
     @Autowired
     private ProductJpaRepository productRepository;
@@ -47,7 +47,7 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         transactionTemplate.executeWithoutResult(status -> {
-            orderRepository.deleteAll();
+            orderJpaRepository.deleteAll();
             productRepository.deleteAll();
 
             // 상품 생성
@@ -55,12 +55,12 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
             productRepository.save(product);
 
             // 주문 생성 (PLACED 상태)
-            OrderLine orderLine = new OrderLine(
+            OrderJpaEntity order = new OrderJpaEntity(1L, OrderStatus.PLACED, 10000L);
+            OrderLineJpaEntity orderLine = new OrderLineJpaEntity(
                     product.getId(), product.getName(), product.getPrice(), 1
             );
-            Order order = Order.create(1L, List.of(orderLine), 10000L);
-            order.place();
-            orderId = orderRepository.save(order).getId();
+            order.addOrderLine(orderLine);
+            orderId = orderJpaRepository.save(order).getId();
         });
     }
 
@@ -84,8 +84,8 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
                     startLatch.await();
 
                     transactionTemplate.executeWithoutResult(status -> {
-                        Order order = orderRepository.findByIdWithOrderLines(orderId).orElseThrow();
-                        order.cancel();
+                        OrderJpaEntity order = orderJpaRepository.findByIdWithOrderLines(orderId).orElseThrow();
+                        order.updateFrom(OrderStatus.CANCELLED);
                     });
                     successCount.incrementAndGet();
                 } catch (Exception e) {
@@ -121,8 +121,8 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
 
         // 주문 상태가 CANCELLED로 정확히 변경되었는지 확인
         entityManager.clear();
-        Order order = transactionTemplate.execute(status ->
-                orderRepository.findByIdWithOrderLines(orderId).orElseThrow()
+        OrderJpaEntity order = transactionTemplate.execute(status ->
+                orderJpaRepository.findByIdWithOrderLines(orderId).orElseThrow()
         );
         assertThat(order.getStatus().name()).isEqualTo("CANCELLED");
     }

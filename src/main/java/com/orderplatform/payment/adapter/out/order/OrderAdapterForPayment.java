@@ -1,9 +1,10 @@
 package com.orderplatform.payment.adapter.out.order;
 
-import com.orderplatform.common.exception.OrderNotFoundException;
-import com.orderplatform.order.entity.Order;
-import com.orderplatform.order.repository.OrderRepository;
-import com.orderplatform.order.service.OrderService;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaEntity;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaRepository;
+import com.orderplatform.order.application.port.in.CancelOrderCommand;
+import com.orderplatform.order.application.port.in.CancelOrderUseCase;
+import com.orderplatform.order.domain.exception.OrderNotFoundException;
 import com.orderplatform.payment.application.port.out.LoadOrderForPaymentPort;
 import com.orderplatform.payment.application.port.out.OrderInfoForPayment;
 import com.orderplatform.payment.application.port.out.UpdateOrderStatusPort;
@@ -20,12 +21,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderAdapterForPayment implements LoadOrderForPaymentPort, UpdateOrderStatusPort {
 
-    private final OrderRepository orderRepository;
-    private final OrderService orderService;
+    private final OrderJpaRepository orderJpaRepository;
+    private final CancelOrderUseCase cancelOrderUseCase;
 
     @Override
     public OrderInfoForPayment loadOrder(UUID orderId) {
-        Order order = orderRepository.findByIdWithOrderLines(orderId)
+        OrderJpaEntity order = orderJpaRepository.findByIdWithOrderLines(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
         return new OrderInfoForPayment(
@@ -38,13 +39,13 @@ public class OrderAdapterForPayment implements LoadOrderForPaymentPort, UpdateOr
 
     @Override
     public void markOrderPaid(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
+        OrderJpaEntity order = orderJpaRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
-        order.markPaid();
+        order.updateFrom(com.orderplatform.order.domain.model.OrderStatus.PAID);
     }
 
     @Override
     public void cancelOrder(Long memberId, UUID orderId) {
-        orderService.cancelOrder(memberId, orderId);
+        cancelOrderUseCase.cancelOrder(new CancelOrderCommand(orderId, memberId));
     }
 }

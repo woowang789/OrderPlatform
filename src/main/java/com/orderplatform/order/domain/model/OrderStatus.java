@@ -1,7 +1,7 @@
-package com.orderplatform.order.entity;
+package com.orderplatform.order.domain.model;
 
 /**
- * 주문 상태 열거형 (Phase 1: 기본 4개 상태)
+ * 주문 상태 열거형
  */
 public enum OrderStatus {
 

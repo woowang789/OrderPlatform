@@ -3,9 +3,9 @@ package com.orderplatform.payment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderplatform.common.AbstractIntegrationTest;
 import com.orderplatform.config.jwt.JwtTokenProvider;
-import com.orderplatform.order.dto.CreateOrderRequest;
-import com.orderplatform.order.dto.OrderItemRequest;
-import com.orderplatform.order.repository.OrderRepository;
+import com.orderplatform.order.adapter.in.web.dto.CreateOrderRequest;
+import com.orderplatform.order.adapter.in.web.dto.OrderItemRequest;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaRepository;
 import com.orderplatform.payment.adapter.in.web.dto.CreatePaymentRequest;
 import com.orderplatform.payment.adapter.out.persistence.PaymentJpaRepository;
 import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
@@ -38,7 +38,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     private PaymentJpaRepository paymentRepository;
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderJpaRepository orderRepository;
 
     @Autowired
     private ProductJpaRepository productRepository;

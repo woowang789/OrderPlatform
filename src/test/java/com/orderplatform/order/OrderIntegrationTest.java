@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderplatform.common.AbstractIntegrationTest;
 import com.orderplatform.config.jwt.JwtTokenProvider;
-import com.orderplatform.order.dto.CreateOrderRequest;
-import com.orderplatform.order.dto.OrderItemRequest;
-import com.orderplatform.order.repository.OrderRepository;
+import com.orderplatform.order.adapter.in.web.dto.CreateOrderRequest;
+import com.orderplatform.order.adapter.in.web.dto.OrderItemRequest;
+import com.orderplatform.order.adapter.out.persistence.OrderJpaRepository;
 import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
 import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +33,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderJpaRepository orderRepository;
 
     @Autowired
     private ProductJpaRepository productRepository;

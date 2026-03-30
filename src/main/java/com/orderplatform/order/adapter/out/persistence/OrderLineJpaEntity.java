@@ -1,4 +1,4 @@
-package com.orderplatform.order.entity;
+package com.orderplatform.order.adapter.out.persistence;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -6,13 +6,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 주문 항목 엔티티 — 주문 시점의 상품명/가격 스냅샷을 저장한다.
+ * 주문 항목 JPA 엔티티 — 주문 시점의 상품명/가격 스냅샷
  */
 @Entity
 @Table(name = "order_lines")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class OrderLine {
+public class OrderLineJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +20,7 @@ public class OrderLine {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    private OrderJpaEntity order;
 
     @Column(nullable = false)
     private Long productId;
@@ -34,15 +34,15 @@ public class OrderLine {
     @Column(nullable = false)
     private int quantity;
 
-    public OrderLine(Long productId, String productName, long price, int quantity) {
+    public OrderLineJpaEntity(Long productId, String productName, long price, int quantity) {
         this.productId = productId;
         this.productName = productName;
         this.price = price;
         this.quantity = quantity;
     }
 
-    // 양방향 관계 설정 (Order에서 호출)
-    void setOrder(Order order) {
+    // 양방향 관계 설정 (OrderJpaEntity에서 호출)
+    void setOrder(OrderJpaEntity order) {
         this.order = order;
     }
 }

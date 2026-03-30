@@ -1,4 +1,4 @@
-package com.orderplatform.order.dto;
+package com.orderplatform.order.adapter.in.web.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

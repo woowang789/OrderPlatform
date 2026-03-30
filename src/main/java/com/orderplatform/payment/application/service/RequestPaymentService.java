@@ -1,7 +1,7 @@
 package com.orderplatform.payment.application.service;
 
 import com.orderplatform.common.exception.BusinessException;
-import com.orderplatform.common.exception.OrderNotFoundException;
+import com.orderplatform.order.domain.exception.OrderNotFoundException;
 import com.orderplatform.payment.application.port.in.PaymentInfo;
 import com.orderplatform.payment.application.port.in.RequestPaymentCommand;
 import com.orderplatform.payment.application.port.in.RequestPaymentUseCase;
