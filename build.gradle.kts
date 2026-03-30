@@ -1,69 +1,47 @@
 plugins {
-	java
-	id("org.springframework.boot") version "3.5.0"
-	id("io.spring.dependency-management") version "1.1.7"
+    java
+    id("org.springframework.boot") version "3.5.0" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
 }
 
-group = "com"
-version = "0.0.1-SNAPSHOT"
+val springCloudVersion by extra("2025.0.0")
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+allprojects {
+    group = "com"
+    version = "0.0.1-SNAPSHOT"
+
+    repositories {
+        mavenCentral()
+    }
 }
 
-configurations {
-	compileOnly {
-		extendsFrom(configurations.annotationProcessor.get())
-	}
-}
+subprojects {
+    apply(plugin = "java")
 
-repositories {
-	mavenCentral()
-}
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-dependencies {
+    configurations {
+        compileOnly {
+            extendsFrom(configurations.annotationProcessor.get())
+        }
+    }
 
-	// Spring Boot Starters
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-web")
+    dependencies {
+        compileOnly("org.projectlombok:lombok")
+        annotationProcessor("org.projectlombok:lombok")
 
-	// API 문서 (SpringDoc OpenAPI)
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
+        testImplementation("org.springframework.boot:spring-boot-starter-test")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    }
 
-	// JWT
-	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
-
-	// Lombok
-	compileOnly("org.projectlombok:lombok")
-	annotationProcessor("org.projectlombok:lombok")
-
-	// Database
-	runtimeOnly("org.postgresql:postgresql")
-
-	// Test
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
-	testImplementation("org.springframework.boot:spring-boot-testcontainers")
-	testImplementation("org.springframework.security:spring-security-test")
-	testImplementation("org.testcontainers:junit-jupiter") {
-		exclude(group = "org.testcontainers", module = "testcontainers")
-	}
-	testImplementation("org.testcontainers:postgresql") {
-		exclude(group = "org.testcontainers", module = "testcontainers")
-	}
-	testImplementation("org.testcontainers:testcontainers:2.0.3")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-tasks.withType<Test> {
-	useJUnitPlatform()
-	testLogging {
-		events("passed", "failed", "skipped")
-	}
+    tasks.withType<Test> {
+        useJUnitPlatform()
+        testLogging {
+            events("passed", "failed", "skipped")
+        }
+    }
 }
