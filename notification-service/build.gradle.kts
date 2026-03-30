@@ -5,4 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":common"))
+
+    // Kafka
+    implementation("org.springframework.kafka:spring-kafka")
 }

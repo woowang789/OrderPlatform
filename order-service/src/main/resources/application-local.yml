@@ -1,9 +1,12 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/orderplatform
+    url: jdbc:postgresql://localhost:5432/order_db
     username: orderplatform
     password: orderplatform
     driver-class-name: org.postgresql.Driver
+
+  kafka:
+    bootstrap-servers: localhost:9092
 
   jpa:
     hibernate:

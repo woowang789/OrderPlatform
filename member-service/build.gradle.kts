@@ -6,6 +6,9 @@ plugins {
 dependencies {
     implementation(project(":common"))
 
+    // Kafka
+    implementation("org.springframework.kafka:spring-kafka")
+
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 

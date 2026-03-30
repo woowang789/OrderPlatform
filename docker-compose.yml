@@ -1,15 +1,156 @@
 services:
-  postgres:
+  # ──────────────────────────────────────────────
+  # Database (서비스별 분리 — Database per Service)
+  # ──────────────────────────────────────────────
+  order-db:
     image: postgres:16
-    container_name: orderplatform-postgres
+    container_name: orderplatform-order-db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: orderplatform
+      POSTGRES_DB: order_db
       POSTGRES_USER: orderplatform
       POSTGRES_PASSWORD: orderplatform
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderplatform -d order_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orderplatform-net
+
+  payment-db:
+    image: postgres:16
+    container_name: orderplatform-payment-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: orderplatform
+      POSTGRES_PASSWORD: orderplatform
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderplatform -d payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orderplatform-net
+
+  product-db:
+    image: postgres:16
+    container_name: orderplatform-product-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: orderplatform
+      POSTGRES_PASSWORD: orderplatform
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderplatform -d product_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orderplatform-net
+
+  member-db:
+    image: postgres:16
+    container_name: orderplatform-member-db
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: member_db
+      POSTGRES_USER: orderplatform
+      POSTGRES_PASSWORD: orderplatform
+    volumes:
+      - member-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderplatform -d member_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orderplatform-net
+
+  # ──────────────────────────────────────────────
+  # Kafka (KRaft 모드 — Zookeeper 불필요)
+  # ──────────────────────────────────────────────
+  kafka:
+    image: apache/kafka:latest
+    container_name: orderplatform-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:29093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: orderplatform-kafka-cluster-id-1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - orderplatform-net
+
+  # Kafka 토픽 자동 생성
+  kafka-init:
+    image: apache/kafka:latest
+    container_name: orderplatform-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo '>>> Kafka 토픽 생성 시작...'
+        for TOPIC in order.placed payment.completed payment.failed payment.cancelled payment.cancel.requested stock.deducted stock.deduction.failed order.confirmed order.cancelled; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --topic $$TOPIC --partitions 3 --replication-factor 1 --if-not-exists
+          echo "  토픽 생성 완료: $$TOPIC"
+        done
+        echo '>>> 전체 토픽 목록:'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list
+        echo '>>> Kafka 토픽 생성 완료!'
+    networks:
+      - orderplatform-net
+
+  # Kafka UI (모니터링)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: orderplatform-kafka-ui
+    ports:
+      - "9090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: orderplatform
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - orderplatform-net
 
 volumes:
-  postgres-data:
+  order-db-data:
+  payment-db-data:
+  product-db-data:
+  member-db-data:
+
+networks:
+  orderplatform-net:
+    driver: bridge
