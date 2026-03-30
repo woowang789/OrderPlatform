@@ -85,6 +85,9 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
 
                     transactionTemplate.executeWithoutResult(status -> {
                         OrderJpaEntity order = orderJpaRepository.findByIdWithOrderLines(orderId).orElseThrow();
+                        if (order.getStatus() != OrderStatus.PLACED) {
+                            throw new IllegalStateException("이미 변경된 주문: " + order.getStatus());
+                        }
                         order.updateFrom(OrderStatus.CANCELLED);
                     });
                     successCount.incrementAndGet();
