@@ -2,12 +2,12 @@ package com.orderplatform.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderplatform.common.AbstractIntegrationTest;
-import com.orderplatform.common.exception.InsufficientStockException;
+import com.orderplatform.product.adapter.in.web.dto.CreateProductRequest;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
+import com.orderplatform.product.application.port.in.UpdateStockUseCase;
+import com.orderplatform.product.domain.exception.InsufficientStockException;
 import com.orderplatform.config.jwt.JwtTokenProvider;
-import com.orderplatform.product.dto.CreateProductRequest;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
-import com.orderplatform.product.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,10 +31,10 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductJpaRepository productRepository;
 
     @Autowired
-    private ProductService productService;
+    private UpdateStockUseCase updateStockUseCase;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -105,7 +105,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("상품 상세 조회 성공")
     void getProduct_success() throws Exception {
-        Product product = createTestProduct("조회 상품", 15000, 50, "의류");
+        ProductJpaEntity product = createTestProduct("조회 상품", 15000, 50, "의류");
 
         mockMvc.perform(get("/api/products/{id}", product.getId()))
                 .andExpect(status().isOk())
@@ -126,20 +126,20 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("재고 차감 성공")
     void decreaseStock_success() {
-        Product product = createTestProduct("재고 상품", 10000, 100, "전자제품");
+        ProductJpaEntity product = createTestProduct("재고 상품", 10000, 100, "전자제품");
 
-        productService.decreaseStock(product.getId(), 30);
+        updateStockUseCase.decreaseStock(product.getId(), 30);
 
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        ProductJpaEntity updated = productRepository.findById(product.getId()).orElseThrow();
         assertThat(updated.getStock()).isEqualTo(70);
     }
 
     @Test
     @DisplayName("재고 부족 시 예외 발생")
     void decreaseStock_insufficientStock() {
-        Product product = createTestProduct("재고 부족 상품", 5000, 10, "음식");
+        ProductJpaEntity product = createTestProduct("재고 부족 상품", 5000, 10, "음식");
 
-        assertThatThrownBy(() -> productService.decreaseStock(product.getId(), 20))
+        assertThatThrownBy(() -> updateStockUseCase.decreaseStock(product.getId(), 20))
                 .isInstanceOf(InsufficientStockException.class);
     }
 
@@ -169,7 +169,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stock").value(50));
 
         // 4. 재고 차감
-        productService.decreaseStock(productId, 15);
+        updateStockUseCase.decreaseStock(productId, 15);
 
         // 5. 재조회 — 재고 감소 확인
         mockMvc.perform(get("/api/products/{id}", productId))
@@ -178,8 +178,8 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     }
 
     // 헬퍼 메서드
-    private Product createTestProduct(String name, int price, int stock, String category) {
-        Product product = new Product(name, price, stock, category);
+    private ProductJpaEntity createTestProduct(String name, int price, int stock, String category) {
+        ProductJpaEntity product = new ProductJpaEntity(name, price, stock, 0, category);
         return productRepository.save(product);
     }
 }

@@ -9,8 +9,8 @@ import com.orderplatform.order.dto.OrderItemRequest;
 import com.orderplatform.order.repository.OrderRepository;
 import com.orderplatform.payment.dto.CreatePaymentRequest;
 import com.orderplatform.payment.repository.PaymentRepository;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     private OrderRepository orderRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductJpaRepository productRepository;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -62,7 +62,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("결제 성공 — 결제 COMPLETED + 주문 PAID")
     void createPayment_success() throws Exception {
-        Product product = createTestProduct("결제 상품", 10000, 100);
+        ProductJpaEntity product = createTestProduct("결제 상품", 10000, 100);
         String orderId = createOrderViaApi(tokenA, product.getId(), 3);
 
         CreatePaymentRequest paymentRequest = new CreatePaymentRequest(
@@ -92,7 +92,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("중복 결제 시 409 CONFLICT")
     void createPayment_duplicate() throws Exception {
-        Product product = createTestProduct("중복 상품", 5000, 50);
+        ProductJpaEntity product = createTestProduct("중복 상품", 5000, 50);
         String orderId = createOrderViaApi(tokenA, product.getId(), 2);
 
         // 첫 번째 결제 성공
@@ -113,7 +113,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("PLACED가 아닌 주문에 결제 시 400")
     void createPayment_invalidOrderStatus() throws Exception {
-        Product product = createTestProduct("상태 상품", 10000, 100);
+        ProductJpaEntity product = createTestProduct("상태 상품", 10000, 100);
         String orderId = createOrderViaApi(tokenA, product.getId(), 1);
 
         // 주문 취소
@@ -136,7 +136,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("결제 조회 성공")
     void getPayment_success() throws Exception {
-        Product product = createTestProduct("조회 상품", 8000, 30);
+        ProductJpaEntity product = createTestProduct("조회 상품", 8000, 30);
         String orderId = createOrderViaApi(tokenA, product.getId(), 1);
         String paymentId = createPaymentViaApi(tokenA, orderId, "CARD");
 
@@ -150,7 +150,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("타인 결제 조회 시 404")
     void getPayment_accessDenied() throws Exception {
-        Product product = createTestProduct("타인 상품", 10000, 50);
+        ProductJpaEntity product = createTestProduct("타인 상품", 10000, 50);
         String orderId = createOrderViaApi(tokenA, product.getId(), 1);
         String paymentId = createPaymentViaApi(tokenA, orderId, "CARD");
 
@@ -163,7 +163,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("결제 취소 — 결제 CANCELLED + 주문 CANCELLED + 재고 복원")
     void cancelPayment_success() throws Exception {
-        Product product = createTestProduct("취소 상품", 5000, 50);
+        ProductJpaEntity product = createTestProduct("취소 상품", 5000, 50);
         String orderId = createOrderViaApi(tokenA, product.getId(), 5);
         String paymentId = createPaymentViaApi(tokenA, orderId, "CARD");
 
@@ -221,7 +221,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("전체 플로우: 주문 → 결제 → 조회 → 취소 → 재고 복원")
     void fullFlow() throws Exception {
         // 1. 상품 등록
-        Product product = createTestProduct("플로우 상품", 20000, 50);
+        ProductJpaEntity product = createTestProduct("플로우 상품", 20000, 50);
 
         // 2. 주문 생성
         String orderId = createOrderViaApi(tokenA, product.getId(), 3);
@@ -259,8 +259,8 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
 
     // === 헬퍼 메서드 ===
 
-    private Product createTestProduct(String name, int price, int stock) {
-        return productRepository.save(new Product(name, price, stock, "전자제품"));
+    private ProductJpaEntity createTestProduct(String name, int price, int stock) {
+        return productRepository.save(new ProductJpaEntity(name, price, stock, 0, "전자제품"));
     }
 
     private String createOrderViaApi(String token, Long productId, int quantity) throws Exception {

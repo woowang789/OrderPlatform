@@ -1,9 +1,9 @@
 package com.orderplatform.product;
 
 import com.orderplatform.common.AbstractIntegrationTest;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
-import com.orderplatform.product.service.ProductService;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
+import com.orderplatform.product.application.port.in.UpdateStockUseCase;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -30,10 +30,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProductConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired
-    private ProductService productService;
+    private UpdateStockUseCase updateStockUseCase;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductJpaRepository productRepository;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -48,7 +48,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
         // 기존 데이터 정리 후 테스트 상품 생성 (재고 100개)
         transactionTemplate.executeWithoutResult(status -> {
             productRepository.deleteAll();
-            Product product = new Product("동시성 테스트 상품", 10000L, 100, "테스트");
+            ProductJpaEntity product = new ProductJpaEntity("동시성 테스트 상품", 10000L, 100, 0, "테스트");
             productId = productRepository.save(product).getId();
         });
     }
@@ -71,7 +71,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
                     startLatch.await();     // 시작 신호 대기
 
                     // 각 스레드에서 서비스 메서드 호출 → Spring이 스레드별 독립 트랜잭션 생성
-                    productService.decreaseStock(productId, 1);
+                    updateStockUseCase.decreaseStock(productId, 1);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -88,7 +88,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
 
         // 1차 캐시를 비우고 DB에서 직접 조회
         entityManager.clear();
-        Product product = transactionTemplate.execute(status ->
+        ProductJpaEntity product = transactionTemplate.execute(status ->
                 productRepository.findById(productId).orElseThrow()
         );
 
@@ -131,7 +131,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
                     readyLatch.countDown();
                     startLatch.await();
 
-                    productService.decreaseStock(productId, 1);
+                    updateStockUseCase.decreaseStock(productId, 1);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -148,7 +148,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
         long elapsed = System.nanoTime() - startTime;
 
         entityManager.clear();
-        Product product = transactionTemplate.execute(status ->
+        ProductJpaEntity product = transactionTemplate.execute(status ->
                 productRepository.findById(productId).orElseThrow()
         );
 
@@ -188,7 +188,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
                     // 낙관적 락 + 재시도 패턴
                     for (int attempt = 0; attempt <= maxRetry; attempt++) {
                         try {
-                            productService.decreaseStockWithOptimisticLock(productId, 1);
+                            updateStockUseCase.decreaseStockWithOptimisticLock(productId, 1);
                             successCount.incrementAndGet();
                             break;
                         } catch (Exception e) {
@@ -215,7 +215,7 @@ class ProductConcurrencyTest extends AbstractIntegrationTest {
         long elapsed = System.nanoTime() - startTime;
 
         entityManager.clear();
-        Product product = transactionTemplate.execute(status ->
+        ProductJpaEntity product = transactionTemplate.execute(status ->
                 productRepository.findById(productId).orElseThrow()
         );
 

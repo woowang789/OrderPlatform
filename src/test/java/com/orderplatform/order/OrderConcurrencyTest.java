@@ -4,8 +4,8 @@ import com.orderplatform.common.AbstractIntegrationTest;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderLine;
 import com.orderplatform.order.repository.OrderRepository;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +34,7 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
     private OrderRepository orderRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductJpaRepository productRepository;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -51,7 +51,7 @@ class OrderConcurrencyTest extends AbstractIntegrationTest {
             productRepository.deleteAll();
 
             // 상품 생성
-            Product product = new Product("테스트 상품", 10000L, 100, "테스트");
+            ProductJpaEntity product = new ProductJpaEntity("테스트 상품", 10000L, 100, 0, "테스트");
             productRepository.save(product);
 
             // 주문 생성 (PLACED 상태)

@@ -7,8 +7,8 @@ import com.orderplatform.config.jwt.JwtTokenProvider;
 import com.orderplatform.order.dto.CreateOrderRequest;
 import com.orderplatform.order.dto.OrderItemRequest;
 import com.orderplatform.order.repository.OrderRepository;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     private OrderRepository orderRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductJpaRepository productRepository;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -55,7 +55,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("주문 생성 성공 — 재고 차감 확인")
     void createOrder_success() throws Exception {
-        Product product = createTestProduct("테스트 상품", 10000, 100, "전자제품");
+        ProductJpaEntity product = createTestProduct("테스트 상품", 10000, 100, "전자제품");
 
         CreateOrderRequest request = new CreateOrderRequest(
                 List.of(new OrderItemRequest(product.getId(), 3))
@@ -77,14 +77,14 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.orderLines[0].quantity").value(3));
 
         // 재고 차감 확인
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        ProductJpaEntity updated = productRepository.findById(product.getId()).orElseThrow();
         assertThat(updated.getStock()).isEqualTo(97);
     }
 
     @Test
     @DisplayName("주문 취소 성공 — 재고 복원 확인")
     void cancelOrder_success() throws Exception {
-        Product product = createTestProduct("취소 상품", 5000, 50, "음식");
+        ProductJpaEntity product = createTestProduct("취소 상품", 5000, 50, "음식");
         String orderId = createOrderViaApi(tokenA, product.getId(), 5);
 
         // 취소
@@ -94,14 +94,14 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
 
         // 재고 복원 확인: 50 - 5 + 5 = 50
-        Product updated = productRepository.findById(product.getId()).orElseThrow();
+        ProductJpaEntity updated = productRepository.findById(product.getId()).orElseThrow();
         assertThat(updated.getStock()).isEqualTo(50);
     }
 
     @Test
     @DisplayName("재고 부족 시 주문 실패")
     void createOrder_insufficientStock() throws Exception {
-        Product product = createTestProduct("부족 상품", 8000, 2, "음료");
+        ProductJpaEntity product = createTestProduct("부족 상품", 8000, 2, "음료");
 
         CreateOrderRequest request = new CreateOrderRequest(
                 List.of(new OrderItemRequest(product.getId(), 5))
@@ -114,7 +114,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         // 재고 변동 없음 확인
-        Product unchanged = productRepository.findById(product.getId()).orElseThrow();
+        ProductJpaEntity unchanged = productRepository.findById(product.getId()).orElseThrow();
         assertThat(unchanged.getStock()).isEqualTo(2);
     }
 
@@ -135,7 +135,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("주문 상세 조회 성공")
     void getOrder_success() throws Exception {
-        Product product = createTestProduct("조회 상품", 15000, 30, "의류");
+        ProductJpaEntity product = createTestProduct("조회 상품", 15000, 30, "의류");
         String orderId = createOrderViaApi(tokenA, product.getId(), 2);
 
         mockMvc.perform(get("/api/orders/{id}", orderId)
@@ -149,7 +149,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("내 주문 목록 조회")
     void getMyOrders_success() throws Exception {
-        Product product = createTestProduct("목록 상품", 5000, 100, "음식");
+        ProductJpaEntity product = createTestProduct("목록 상품", 5000, 100, "음식");
         createOrderViaApi(tokenA, product.getId(), 1);
         createOrderViaApi(tokenA, product.getId(), 2);
 
@@ -162,7 +162,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("타인 주문 조회 시 404")
     void getOrder_accessDenied() throws Exception {
-        Product product = createTestProduct("타인 상품", 10000, 50, "전자제품");
+        ProductJpaEntity product = createTestProduct("타인 상품", 10000, 50, "전자제품");
         String orderId = createOrderViaApi(tokenA, product.getId(), 1);
 
         // 회원B가 회원A의 주문 조회 시도
@@ -174,7 +174,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("타인 주문 취소 시 404")
     void cancelOrder_accessDenied() throws Exception {
-        Product product = createTestProduct("타인 취소 상품", 10000, 50, "전자제품");
+        ProductJpaEntity product = createTestProduct("타인 취소 상품", 10000, 50, "전자제품");
         String orderId = createOrderViaApi(tokenA, product.getId(), 1);
 
         // 회원B가 회원A의 주문 취소 시도
@@ -200,7 +200,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("전체 플로우: 주문 생성 → 조회 → 목록 → 취소 → 재고 복원")
     void fullFlow() throws Exception {
         // 1. 상품 등록
-        Product product = createTestProduct("플로우 상품", 20000, 50, "전자제품");
+        ProductJpaEntity product = createTestProduct("플로우 상품", 20000, 50, "전자제품");
 
         // 2. 주문 생성
         String orderId = createOrderViaApi(tokenA, product.getId(), 3);
@@ -231,8 +231,8 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
 
     // === 헬퍼 메서드 ===
 
-    private Product createTestProduct(String name, int price, int stock, String category) {
-        return productRepository.save(new Product(name, price, stock, category));
+    private ProductJpaEntity createTestProduct(String name, int price, int stock, String category) {
+        return productRepository.save(new ProductJpaEntity(name, price, stock, 0, category));
     }
 
     private String createOrderViaApi(String token, Long productId, int quantity) throws Exception {

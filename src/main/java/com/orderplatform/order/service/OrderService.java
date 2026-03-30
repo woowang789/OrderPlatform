@@ -1,15 +1,15 @@
 package com.orderplatform.order.service;
 
 import com.orderplatform.common.exception.OrderNotFoundException;
-import com.orderplatform.common.exception.ProductNotFoundException;
 import com.orderplatform.order.dto.CreateOrderRequest;
 import com.orderplatform.order.dto.OrderItemRequest;
 import com.orderplatform.order.dto.OrderResponse;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderLine;
 import com.orderplatform.order.repository.OrderRepository;
-import com.orderplatform.product.entity.Product;
-import com.orderplatform.product.repository.ProductRepository;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaEntity;
+import com.orderplatform.product.adapter.out.persistence.ProductJpaRepository;
+import com.orderplatform.product.domain.exception.ProductNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +25,7 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private final ProductJpaRepository productRepository;
 
     /**
      * 주문 생성: 상품 조회 → 재고 차감 → 스냅샷 저장 → 주문 확정 (단일 트랜잭션)
@@ -36,7 +36,7 @@ public class OrderService {
         long totalAmount = 0;
 
         for (OrderItemRequest item : request.items()) {
-            Product product = productRepository.findByIdForUpdate(item.productId())
+            ProductJpaEntity product = productRepository.findByIdForUpdate(item.productId())
                     .orElseThrow(() -> new ProductNotFoundException(item.productId()));
 
             product.decreaseStock(item.quantity());
@@ -83,7 +83,7 @@ public class OrderService {
         order.cancel();
 
         for (OrderLine line : order.getOrderLines()) {
-            Product product = productRepository.findByIdForUpdate(line.getProductId())
+            ProductJpaEntity product = productRepository.findByIdForUpdate(line.getProductId())
                     .orElseThrow(() -> new ProductNotFoundException(line.getProductId()));
             product.restoreStock(line.getQuantity());
         }
