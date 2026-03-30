@@ -1,4 +1,0 @@
-/**
- * 애플리케이션 서비스 — UseCase 구현체.
- */
-package com.orderplatform.payment.application.service;
