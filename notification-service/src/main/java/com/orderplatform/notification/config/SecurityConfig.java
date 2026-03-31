@@ -1,4 +1,4 @@
-package com.orderplatform.order.config;
+package com.orderplatform.notification.config;
 
 import com.orderplatform.common.config.security.InternalTokenAuthenticationFilter;
 import lombok.RequiredArgsConstructor;

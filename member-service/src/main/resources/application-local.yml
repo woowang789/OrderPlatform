@@ -21,3 +21,6 @@ spring:
 jwt:
   secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGtleSBmb3Igb3JkZXIgcGxhdGZvcm0gand0IHNpZ25pbmc=
   expiration: 3600000
+
+internal-token:
+  secret: b3JkZXJwbGF0Zm9ybS1pbnRlcm5hbC10b2tlbi1zZWNyZXQta2V5LWZvci1obWFjLXNoYTI1Ng==

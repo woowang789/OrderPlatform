@@ -1,8 +1,5 @@
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: notification-group
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgc2VjdXJlIGtleSBmb3Igb3JkZXIgcGxhdGZvcm0gand0IHNpZ25pbmc=
 
 internal-token:
   secret: b3JkZXJwbGF0Zm9ybS1pbnRlcm5hbC10b2tlbi1zZWNyZXQta2V5LWZvci1obWFjLXNoYTI1Ng==

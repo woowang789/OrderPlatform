@@ -19,3 +19,6 @@ spring:
         format_sql: true
         default_schema: public
     open-in-view: false
+
+internal-token:
+  secret: b3JkZXJwbGF0Zm9ybS1pbnRlcm5hbC10b2tlbi1zZWNyZXQta2V5LWZvci1obWFjLXNoYTI1Ng==
