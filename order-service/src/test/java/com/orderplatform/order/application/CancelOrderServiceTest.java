@@ -1,9 +1,10 @@
 package com.orderplatform.order.application;
 
+import com.orderplatform.common.domain.event.OrderCancelledEvent;
 import com.orderplatform.order.application.port.in.CancelOrderCommand;
 import com.orderplatform.order.application.port.in.OrderInfo;
 import com.orderplatform.order.application.port.out.LoadOrderPort;
-import com.orderplatform.order.application.port.out.RestoreStockPort;
+import com.orderplatform.order.application.port.out.OrderEventPublishPort;
 import com.orderplatform.order.application.port.out.SaveOrderPort;
 import com.orderplatform.order.application.service.CancelOrderService;
 import com.orderplatform.order.domain.exception.OrderNotFoundException;
@@ -32,7 +33,7 @@ class CancelOrderServiceTest {
 
     @Mock LoadOrderPort loadOrderPort;
     @Mock SaveOrderPort saveOrderPort;
-    @Mock RestoreStockPort restoreStockPort;
+    @Mock OrderEventPublishPort orderEventPublishPort;
     @InjectMocks CancelOrderService cancelOrderService;
 
     private final UUID orderId = UUID.randomUUID();
@@ -57,8 +58,7 @@ class CancelOrderServiceTest {
         OrderInfo result = cancelOrderService.cancelOrder(command);
 
         assertThat(result.status()).isEqualTo("CANCELLED");
-        verify(restoreStockPort).restoreStock(1L, 2);
-        verify(restoreStockPort).restoreStock(2L, 1);
+        verify(orderEventPublishPort).publishOrderCancelled(any(OrderCancelledEvent.class));
     }
 
     @Test

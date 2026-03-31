@@ -30,8 +30,11 @@ public class OrderController {
         CreateOrderCommand command = new CreateOrderCommand(
                 memberId,
                 request.items().stream()
-                        .map(item -> new OrderItemCommand(item.productId(), item.quantity()))
-                        .toList()
+                        .map(item -> new OrderItemCommand(
+                                item.productId(), item.productName(),
+                                item.price(), item.quantity()))
+                        .toList(),
+                request.paymentMethod()
         );
 
         OrderInfo info = createOrderUseCase.createOrder(command);

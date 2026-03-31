@@ -1,12 +1,9 @@
 package com.orderplatform.payment.adapter.in.web;
 
 import com.orderplatform.common.annotation.CurrentMemberId;
-import com.orderplatform.payment.adapter.in.web.dto.CreatePaymentRequest;
 import com.orderplatform.payment.adapter.in.web.dto.PaymentResponse;
 import com.orderplatform.payment.application.port.in.*;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,20 +14,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final RequestPaymentUseCase requestPaymentUseCase;
-    private final CancelPaymentUseCase cancelPaymentUseCase;
     private final GetPaymentUseCase getPaymentUseCase;
-
-    @PostMapping
-    public ResponseEntity<PaymentResponse> createPayment(
-            @CurrentMemberId Long memberId,
-            @Valid @RequestBody CreatePaymentRequest request) {
-        RequestPaymentCommand command = new RequestPaymentCommand(
-                memberId, request.orderId(), request.method()
-        );
-        PaymentInfo info = requestPaymentUseCase.requestPayment(command);
-        return ResponseEntity.status(HttpStatus.CREATED).body(PaymentResponse.from(info));
-    }
+    private final CancelPaymentUseCase cancelPaymentUseCase;
 
     @GetMapping("/{id}")
     public ResponseEntity<PaymentResponse> getPayment(

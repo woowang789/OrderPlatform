@@ -1,10 +1,11 @@
 package com.orderplatform.payment.application;
 
+import com.orderplatform.common.domain.event.PaymentCancelledEvent;
 import com.orderplatform.payment.application.port.in.CancelPaymentCommand;
 import com.orderplatform.payment.application.port.in.PaymentInfo;
 import com.orderplatform.payment.application.port.out.LoadPaymentPort;
+import com.orderplatform.payment.application.port.out.PaymentEventPublishPort;
 import com.orderplatform.payment.application.port.out.SavePaymentPort;
-import com.orderplatform.payment.application.port.out.UpdateOrderStatusPort;
 import com.orderplatform.payment.application.service.CancelPaymentService;
 import com.orderplatform.payment.domain.exception.PaymentNotFoundException;
 import com.orderplatform.payment.domain.model.Payment;
@@ -31,7 +32,7 @@ class CancelPaymentServiceTest {
 
     @Mock LoadPaymentPort loadPaymentPort;
     @Mock SavePaymentPort savePaymentPort;
-    @Mock UpdateOrderStatusPort updateOrderStatusPort;
+    @Mock PaymentEventPublishPort paymentEventPublishPort;
     @InjectMocks CancelPaymentService cancelPaymentService;
 
     private final UUID paymentId = UUID.randomUUID();
@@ -53,7 +54,23 @@ class CancelPaymentServiceTest {
         PaymentInfo result = cancelPaymentService.cancelPayment(command);
 
         assertThat(result.status()).isEqualTo("CANCELLED");
-        verify(updateOrderStatusPort).cancelOrder(memberId, orderId);
+        verify(paymentEventPublishPort).publishPaymentCancelled(any(PaymentCancelledEvent.class));
+    }
+
+    @Test
+    void orderId로_결제_취소_Saga_보상() {
+        Payment completedPayment = Payment.reconstitute(
+                paymentId, orderId, memberId, 10000,
+                PaymentMethod.CARD, PaymentStatus.COMPLETED, "PG_TXN_123", null,
+                LocalDateTime.now(), LocalDateTime.now()
+        );
+        given(loadPaymentPort.findByOrderIdExcludingCancelled(orderId))
+                .willReturn(Optional.of(completedPayment));
+        given(savePaymentPort.save(any(Payment.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        cancelPaymentService.cancelPaymentByOrderId(orderId);
+
+        verify(paymentEventPublishPort).publishPaymentCancelled(any(PaymentCancelledEvent.class));
     }
 
     @Test

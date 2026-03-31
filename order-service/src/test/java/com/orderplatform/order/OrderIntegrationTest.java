@@ -6,10 +6,12 @@ import com.orderplatform.order.common.AbstractIntegrationTest;
 import com.orderplatform.order.adapter.in.web.dto.CreateOrderRequest;
 import com.orderplatform.order.adapter.in.web.dto.OrderItemRequest;
 import com.orderplatform.order.adapter.out.persistence.OrderJpaRepository;
+import com.orderplatform.order.application.port.out.OrderEventPublishPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,14 +38,14 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private OrderJpaRepository orderRepository;
 
+    @MockitoBean
+    private OrderEventPublishPort orderEventPublishPort;
+
     @BeforeEach
     void setUp() {
         orderRepository.deleteAll();
     }
 
-    /**
-     * MockMvc 요청에 memberId를 인증 정보로 주입
-     */
     private static RequestPostProcessor memberAuth(Long memberId) {
         return authentication(
                 new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
@@ -51,10 +53,11 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("주문 생성 성공 — Stub 어댑터 사용")
+    @DisplayName("주문 생성 성공 — 클라이언트 스냅샷 기반")
     void createOrder_success() throws Exception {
         CreateOrderRequest request = new CreateOrderRequest(
-                List.of(new OrderItemRequest(1L, 3))
+                List.of(new OrderItemRequest(1L, "테스트상품", 10000, 3)),
+                "CARD"
         );
 
         mockMvc.perform(post("/api/orders")
@@ -71,7 +74,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("주문 취소 성공")
     void cancelOrder_success() throws Exception {
-        String orderId = createOrderViaApi(1L, 5);
+        String orderId = createOrderViaApi(1L, "테스트상품", 10000, 5);
 
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
                         .with(internalToken()).with(memberAuth(1L)))
@@ -82,7 +85,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("주문 상세 조회 성공")
     void getOrder_success() throws Exception {
-        String orderId = createOrderViaApi(1L, 2);
+        String orderId = createOrderViaApi(1L, "테스트상품", 10000, 2);
 
         mockMvc.perform(get("/api/orders/{id}", orderId)
                         .with(internalToken()).with(memberAuth(1L)))
@@ -94,8 +97,8 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("내 주문 목록 조회")
     void getMyOrders_success() throws Exception {
-        createOrderViaApi(1L, 1);
-        createOrderViaApi(1L, 2);
+        createOrderViaApi(1L, "상품A", 10000, 1);
+        createOrderViaApi(1L, "상품B", 5000, 2);
 
         mockMvc.perform(get("/api/orders")
                         .with(internalToken()).with(memberAuth(1L)))
@@ -106,7 +109,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("타인 주문 조회 시 404")
     void getOrder_accessDenied() throws Exception {
-        String orderId = createOrderViaApi(1L, 1);
+        String orderId = createOrderViaApi(1L, "테스트상품", 10000, 1);
 
         mockMvc.perform(get("/api/orders/{id}", orderId)
                         .with(internalToken()).with(memberAuth(2L)))
@@ -116,7 +119,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("타인 주문 취소 시 404")
     void cancelOrder_accessDenied() throws Exception {
-        String orderId = createOrderViaApi(1L, 1);
+        String orderId = createOrderViaApi(1L, "테스트상품", 10000, 1);
 
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
                         .with(internalToken()).with(memberAuth(2L)))
@@ -126,22 +129,18 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("전체 플로우: 주문 생성 → 조회 → 목록 → 취소")
     void fullFlow() throws Exception {
-        // 1. 주문 생성
-        String orderId = createOrderViaApi(1L, 3);
+        String orderId = createOrderViaApi(1L, "테스트상품", 10000, 3);
 
-        // 2. 주문 상세 조회
         mockMvc.perform(get("/api/orders/{id}", orderId)
                         .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PLACED"));
 
-        // 3. 내 주문 목록
         mockMvc.perform(get("/api/orders")
                         .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
-        // 4. 주문 취소
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
                         .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
@@ -150,9 +149,10 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
 
     // === 헬퍼 메서드 ===
 
-    private String createOrderViaApi(Long productId, int quantity) throws Exception {
+    private String createOrderViaApi(Long productId, String productName, long price, int quantity) throws Exception {
         CreateOrderRequest request = new CreateOrderRequest(
-                List.of(new OrderItemRequest(productId, quantity))
+                List.of(new OrderItemRequest(productId, productName, price, quantity)),
+                "CARD"
         );
 
         String response = mockMvc.perform(post("/api/orders")

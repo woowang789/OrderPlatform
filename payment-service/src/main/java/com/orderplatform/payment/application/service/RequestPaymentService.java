@@ -1,6 +1,7 @@
 package com.orderplatform.payment.application.service;
 
-import com.orderplatform.common.exception.BusinessException;
+import com.orderplatform.common.domain.event.PaymentCompletedEvent;
+import com.orderplatform.common.domain.event.PaymentFailedEvent;
 import com.orderplatform.payment.application.port.in.PaymentInfo;
 import com.orderplatform.payment.application.port.in.RequestPaymentCommand;
 import com.orderplatform.payment.application.port.in.RequestPaymentUseCase;
@@ -9,12 +10,12 @@ import com.orderplatform.payment.domain.exception.DuplicatePaymentException;
 import com.orderplatform.payment.domain.model.Payment;
 import com.orderplatform.payment.domain.model.PaymentMethod;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 결제 요청 서비스
+ * 이벤트 페이로드에서 주문 정보를 직접 받아 결제를 처리한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -24,55 +25,47 @@ public class RequestPaymentService implements RequestPaymentUseCase {
     private final LoadPaymentPort loadPaymentPort;
     private final SavePaymentPort savePaymentPort;
     private final PaymentGatewayPort paymentGatewayPort;
-    private final LoadOrderForPaymentPort loadOrderForPaymentPort;
-    private final UpdateOrderStatusPort updateOrderStatusPort;
+    private final PaymentEventPublishPort paymentEventPublishPort;
 
     @Override
     @Transactional
     public PaymentInfo requestPayment(RequestPaymentCommand command) {
-        // 1. 주문 조회 및 소유자 검증
-        OrderInfoForPayment order = loadOrderForPaymentPort.loadOrder(command.orderId());
-
-        if (!order.memberId().equals(command.memberId())) {
-            throw new BusinessException(
-                    "주문을 찾을 수 없습니다. ID: " + command.orderId(), HttpStatus.NOT_FOUND
-            );
-        }
-
-        // 2. 중복 결제 방지
+        // 1. 중복 결제 방지
         loadPaymentPort.findByOrderIdExcludingCancelled(command.orderId())
                 .ifPresent(p -> {
                     throw new DuplicatePaymentException(command.orderId());
                 });
 
-        // 3. 주문 상태 확인 (PLACED만 결제 가능)
-        if (!"PLACED".equals(order.status())) {
-            throw new BusinessException(
-                    "현재 상태에서 해당 작업을 수행할 수 없습니다. 현재 상태: " + order.status(),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        // 4. 결제 생성
+        // 2. 결제 생성
         PaymentMethod method = PaymentMethod.valueOf(command.method());
         Payment payment = Payment.create(
-                command.orderId(), command.memberId(), order.totalAmount(), method
+                command.orderId(), command.memberId(), command.totalAmount(), method
         );
 
-        // 5. PG 결제 처리
+        // 3. PG 결제 처리
         PgPaymentResult pgResult = paymentGatewayPort.processPayment(
-                order.totalAmount(), command.method()
+                command.totalAmount(), command.method()
         );
 
         if (pgResult.success()) {
             payment.complete(pgResult.pgTxnId());
-            updateOrderStatusPort.markOrderPaid(command.orderId());
         } else {
             payment.fail(pgResult.failReason());
         }
 
-        // 6. 저장 및 반환
+        // 4. 저장
         Payment saved = savePaymentPort.save(payment);
+
+        // 5. 이벤트 발행
+        if (saved.getStatus() == com.orderplatform.payment.domain.model.PaymentStatus.COMPLETED) {
+            paymentEventPublishPort.publishPaymentCompleted(new PaymentCompletedEvent(
+                    saved.getId(), saved.getOrderId(), saved.getMemberId(),
+                    saved.getAmount(), command.items()));
+        } else {
+            paymentEventPublishPort.publishPaymentFailed(new PaymentFailedEvent(
+                    saved.getId(), saved.getOrderId(), saved.getFailReason()));
+        }
+
         return PaymentInfo.from(saved);
     }
 }
