@@ -22,6 +22,9 @@ dependencies {
     // Spring Security (CurrentMemberIdArgumentResolver에서 사용)
     api("org.springframework.boot:spring-boot-starter-security")
 
+    // Kafka (이벤트 드리븐 통신)
+    api("org.springframework.kafka:spring-kafka")
+
     // API 문서 (SpringDoc OpenAPI)
     api("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 }
