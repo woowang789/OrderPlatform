@@ -8,4 +8,7 @@ dependencies {
 
     // Kafka
     implementation("org.springframework.kafka:spring-kafka")
+
+    // Test
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 }
