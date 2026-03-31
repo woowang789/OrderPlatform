@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.Collections;
 
+import static com.orderplatform.common.test.InternalTokenTestSupport.internalToken;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,7 +57,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         CreateProductRequest request = new CreateProductRequest("테스트 상품", 10000, 100, "전자제품");
 
         mockMvc.perform(post("/api/products")
-                        .with(memberAuth(1L))
+                        .with(internalToken()).with(memberAuth(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -74,6 +75,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         CreateProductRequest request = new CreateProductRequest("", -1000, -5, null);
 
         mockMvc.perform(post("/api/products")
+                        .with(internalToken()).with(memberAuth(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -86,7 +88,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         createTestProduct("상품A", 5000, 10, "음식");
         createTestProduct("상품B", 8000, 20, "음료");
 
-        mockMvc.perform(get("/api/products"))
+        mockMvc.perform(get("/api/products").with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("상품A"))
@@ -98,7 +100,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     void getProduct_success() throws Exception {
         ProductJpaEntity product = createTestProduct("조회 상품", 15000, 50, "의류");
 
-        mockMvc.perform(get("/api/products/{id}", product.getId()))
+        mockMvc.perform(get("/api/products/{id}", product.getId()).with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(product.getId()))
                 .andExpect(jsonPath("$.name").value("조회 상품"))
@@ -110,7 +112,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("존재하지 않는 상품 조회 404")
     void getProduct_notFound() throws Exception {
-        mockMvc.perform(get("/api/products/{id}", 999L))
+        mockMvc.perform(get("/api/products/{id}", 999L).with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isNotFound());
     }
 
@@ -141,7 +143,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         CreateProductRequest request = new CreateProductRequest("플로우 상품", 20000, 50, "전자제품");
 
         String createResponse = mockMvc.perform(post("/api/products")
-                        .with(memberAuth(1L))
+                        .with(internalToken()).with(memberAuth(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -150,12 +152,12 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         Long productId = objectMapper.readTree(createResponse).get("id").asLong();
 
         // 2. 목록 조회
-        mockMvc.perform(get("/api/products"))
+        mockMvc.perform(get("/api/products").with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
         // 3. 상세 조회
-        mockMvc.perform(get("/api/products/{id}", productId))
+        mockMvc.perform(get("/api/products/{id}", productId).with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(50));
 
@@ -163,7 +165,7 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         updateStockUseCase.decreaseStock(productId, 15);
 
         // 5. 재조회 — 재고 감소 확인
-        mockMvc.perform(get("/api/products/{id}", productId))
+        mockMvc.perform(get("/api/products/{id}", productId).with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(35));
     }

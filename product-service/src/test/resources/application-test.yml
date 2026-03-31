@@ -1,4 +1,6 @@
 spring:
+  kafka:
+    bootstrap-servers: localhost:9092
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -7,3 +9,6 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
+
+internal-token:
+  secret: b3JkZXJwbGF0Zm9ybS1pbnRlcm5hbC10b2tlbi1zZWNyZXQta2V5LWZvci1obWFjLXNoYTI1Ng==

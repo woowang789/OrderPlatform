@@ -11,8 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
+import static com.orderplatform.common.test.InternalTokenTestSupport.internalToken;
+import static com.orderplatform.common.test.InternalTokenTestSupport.internalTokenWithUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +41,7 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
         SignupRequest request = new SignupRequest("test@example.com", "password123", "테스트");
 
         mockMvc.perform(post("/api/members/signup")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -57,12 +59,14 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
 
         // 첫 번째 가입 성공
         mockMvc.perform(post("/api/members/signup")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isCreated());
 
         // 같은 이메일로 두 번째 가입 실패
         mockMvc.perform(post("/api/members/signup")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isConflict());
@@ -78,6 +82,7 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
         LoginRequest loginRequest = new LoginRequest("login@example.com", "password123");
 
         mockMvc.perform(post("/api/members/login")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
@@ -94,6 +99,7 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
         LoginRequest loginRequest = new LoginRequest("wrong@example.com", "wrongpassword");
 
         mockMvc.perform(post("/api/members/login")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized());
@@ -102,13 +108,12 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("내 정보 조회 성공")
     void getMyInfo_success() throws Exception {
-        // 회원가입 + 로그인
-        signup("me@example.com", "password123", "내정보");
-        String token = login("me@example.com", "password123");
+        // 회원가입
+        Long memberId = signup("me@example.com", "password123", "내정보");
 
-        // 내 정보 조회
+        // 내 정보 조회 — Gateway가 X-User-Id 헤더를 주입하는 것을 시뮬레이션
         mockMvc.perform(get("/api/members/me")
-                        .header("Authorization", "Bearer " + token))
+                        .with(internalTokenWithUser(memberId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("me@example.com"))
                 .andExpect(jsonPath("$.name").value("내정보"));
@@ -117,7 +122,8 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("토큰 없이 내 정보 조회 실패")
     void getMyInfo_noToken_fail() throws Exception {
-        mockMvc.perform(get("/api/members/me"))
+        mockMvc.perform(get("/api/members/me")
+                        .with(internalToken()))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -127,51 +133,44 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
         // 1. 회원가입
         SignupRequest signupRequest = new SignupRequest("flow@example.com", "password123", "플로우");
 
-        mockMvc.perform(post("/api/members/signup")
+        String signupResponse = mockMvc.perform(post("/api/members/signup")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("flow@example.com"));
+                .andExpect(jsonPath("$.email").value("flow@example.com"))
+                .andReturn().getResponse().getContentAsString();
 
-        // 2. 로그인 → JWT 토큰 획득
+        Long memberId = objectMapper.readTree(signupResponse).get("id").asLong();
+
+        // 2. 로그인 → JWT 토큰 발급 확인
         LoginRequest loginRequest = new LoginRequest("flow@example.com", "password123");
 
-        MvcResult loginResult = mockMvc.perform(post("/api/members/login")
+        mockMvc.perform(post("/api/members/login")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                .andReturn();
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
 
-        String accessToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .get("accessToken").asText();
-
-        // 3. JWT로 내 정보 조회
+        // 3. 내 정보 조회 — Gateway가 X-User-Id를 주입하는 것을 시뮬레이션
         mockMvc.perform(get("/api/members/me")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .with(internalTokenWithUser(memberId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("flow@example.com"))
                 .andExpect(jsonPath("$.name").value("플로우"));
     }
 
     // 헬퍼 메서드
-    private void signup(String email, String password, String name) throws Exception {
+    private Long signup(String email, String password, String name) throws Exception {
         SignupRequest request = new SignupRequest(email, password, name);
-        mockMvc.perform(post("/api/members/signup")
+        String response = mockMvc.perform(post("/api/members/signup")
+                        .with(internalToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
     }
 
-    private String login(String email, String password) throws Exception {
-        LoginRequest request = new LoginRequest(email, password);
-        MvcResult result = mockMvc.perform(post("/api/members/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        return objectMapper.readTree(result.getResponse().getContentAsString())
-                .get("accessToken").asText();
-    }
 }

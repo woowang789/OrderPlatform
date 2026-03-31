@@ -25,6 +25,9 @@ dependencies {
     // Kafka (이벤트 드리븐 통신)
     api("org.springframework.kafka:spring-kafka")
 
+    // 테스트 지원 (InternalTokenTestSupport에서 MockMvc RequestPostProcessor 사용)
+    api("org.springframework:spring-test")
+
     // API 문서 (SpringDoc OpenAPI)
     api("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 }

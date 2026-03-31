@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.util.Collections;
 import java.util.List;
 
+import static com.orderplatform.common.test.InternalTokenTestSupport.internalToken;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,7 +58,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         );
 
         mockMvc.perform(post("/api/orders")
-                        .with(memberAuth(1L))
+                        .with(internalToken()).with(memberAuth(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -73,7 +74,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         String orderId = createOrderViaApi(1L, 5);
 
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
     }
@@ -84,7 +85,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         String orderId = createOrderViaApi(1L, 2);
 
         mockMvc.perform(get("/api/orders/{id}", orderId)
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(orderId))
                 .andExpect(jsonPath("$.status").value("PLACED"));
@@ -97,7 +98,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         createOrderViaApi(1L, 2);
 
         mockMvc.perform(get("/api/orders")
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
     }
@@ -108,7 +109,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         String orderId = createOrderViaApi(1L, 1);
 
         mockMvc.perform(get("/api/orders/{id}", orderId)
-                        .with(memberAuth(2L)))
+                        .with(internalToken()).with(memberAuth(2L)))
                 .andExpect(status().isNotFound());
     }
 
@@ -118,7 +119,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         String orderId = createOrderViaApi(1L, 1);
 
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
-                        .with(memberAuth(2L)))
+                        .with(internalToken()).with(memberAuth(2L)))
                 .andExpect(status().isNotFound());
     }
 
@@ -130,19 +131,19 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
 
         // 2. 주문 상세 조회
         mockMvc.perform(get("/api/orders/{id}", orderId)
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PLACED"));
 
         // 3. 내 주문 목록
         mockMvc.perform(get("/api/orders")
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
         // 4. 주문 취소
         mockMvc.perform(post("/api/orders/{id}/cancel", orderId)
-                        .with(memberAuth(1L)))
+                        .with(internalToken()).with(memberAuth(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
     }
@@ -155,7 +156,7 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
         );
 
         String response = mockMvc.perform(post("/api/orders")
-                        .with(memberAuth(1L))
+                        .with(internalToken()).with(memberAuth(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
